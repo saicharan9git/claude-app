@@ -78,12 +78,62 @@ const ArrowRightIcon = () => (
   </svg>
 );
 
+type LoginResponse = {
+  token: string;
+  user: {
+    email: string;
+    name: string;
+  };
+};
+
+const mockLoginApi = (email: string, password: string): Promise<LoginResponse> => {
+  return new Promise((resolve, reject) => {
+    window.setTimeout(() => {
+      if (!email || !password) {
+        reject(new Error("Please enter both email and password."));
+        return;
+      }
+
+      if (email === "demo@taskify.com" && password === "password123") {
+        resolve({
+          token: "mock-token-123",
+          user: {
+            email,
+            name: "Demo User",
+          },
+        });
+        return;
+      }
+
+      reject(new Error("Invalid email or password. Try demo@taskify.com / password123."));
+    }, 900);
+  });
+};
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleSignIn = () => {
-    console.log("Sign in with email:", email, password);
+  const handleSignIn = async () => {
+    setIsLoading(true);
+    setMessage("");
+    setIsSuccess(false);
+
+    try {
+      const response = await mockLoginApi(email, password);
+      localStorage.setItem("authToken", response.token);
+      setIsSuccess(true);
+      setMessage(`Welcome back, ${response.user.name}.`);
+      console.log("Mock login success:", response);
+    } catch (error) {
+      setIsSuccess(false);
+      setMessage(error instanceof Error ? error.message : "Login failed.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleSignIn = () => {
@@ -130,6 +180,7 @@ const Login = () => {
             variant="ghost"
             size="lg"
             fullWidth
+            disabled={isLoading}
             onClick={handleGoogleSignIn}
             leftIcon={<GoogleMark />}
             className="h-[46px] rounded-[9px] border border-[#373348] bg-transparent px-5 py-0 text-[14px] font-semibold tracking-normal text-[#f3f0f4] hover:border-[#48435d] hover:bg-white/[0.03] hover:text-white"
@@ -172,7 +223,7 @@ const Login = () => {
                 Forgot password?
               </button>
             </div>
-            <Input
+          <Input
               type="password"
               placeholder="********"
               value={password}
@@ -185,11 +236,24 @@ const Login = () => {
             />
           </div>
           <Button
-            label="Sign In"
+            label={isLoading ? "Signing In" : "Sign In"}
             size="md"
             variant="primary"
+            type="submit"
+            loading={isLoading}
+            disabled={isLoading}
             rightIcon={<ArrowRightIcon />}
           />
+
+          {message && (
+            <p
+              className={`mt-4 text-center text-sm font-medium ${
+                isSuccess ? "text-emerald-400" : "text-red-400"
+              }`}
+            >
+              {message}
+            </p>
+          )}
 
         </form>
       </section>
